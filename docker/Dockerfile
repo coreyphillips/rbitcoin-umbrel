@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 # check=skip=FromPlatformFlagConstDisallowed
 
-# The rbitcoin node (https://github.com/reardencode/rbitcoin) for the
-# beignet-rbitcoin Umbrel app: rbitcoin-node built from a pinned upstream
+# The rbitcoin node (https://github.com/rbitcoin-org/rbitcoin) for the
+# rbitcoin-node Umbrel app: rbitcoin-node built from a pinned upstream
 # commit as a static musl binary, on a minimal Alpine with just enough to
 # drop privileges.
 #
 # The rbitcoin source this image carries is pinned here and nowhere else:
-# build-rbitcoin-image.yml and check-release.yml read these ARG lines.
+# build-image.yml and check-release.yml read these ARG lines.
 # RBITCOIN_VERSION is the workspace version in that commit's Cargo.toml (what
 # the binary reports), and the build refuses a commit that says otherwise.
 # The last upstream release, 0.8.0, predates the Electrum JSON-RPC batch
@@ -48,7 +48,7 @@ WORKDIR /build
 RUN set -eu; \
     git init -q rbitcoin; \
     cd rbitcoin; \
-    git remote add origin https://github.com/reardencode/rbitcoin.git; \
+    git remote add origin https://github.com/rbitcoin-org/rbitcoin.git; \
     git fetch -q --filter=tree:0 origin master; \
     git merge-base --is-ancestor "$RBITCOIN_COMMIT" origin/master || { \
       echo "rbitcoin $RBITCOIN_COMMIT is not on upstream master" >&2; exit 1; }; \
@@ -106,13 +106,13 @@ ARG RBITCOIN_VERSION
 ARG APP_VERSION=dev
 ENV RBITCOIN_VERSION=${RBITCOIN_VERSION} APP_VERSION=${APP_VERSION}
 # su-exec drops to uid 1000 after the entrypoint has made the data directory
-# writable, the same job gosu does in docker/entrypoint.sh for the manager.
+# writable.
 # Python serves the allowlisted settings API in a separate container and
 # validates saved defaults before execing the static node binary.
 RUN apk add --no-cache su-exec python3
 COPY --from=node /rbitcoin-node /usr/local/bin/rbitcoin-node
-COPY docker/rbitcoin/entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY docker/rbitcoin/settings.py /usr/local/lib/rbitcoin/settings.py
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY docker/settings.py /usr/local/lib/rbitcoin/settings.py
 # The status page (nginx template and HTML) travels in this image, not in
 # the app directory: umbrelOS copies an app's files into APP_DATA_DIR at
 # install and on update copies only docker-compose.yml, *.template,
@@ -120,7 +120,7 @@ COPY docker/rbitcoin/settings.py /usr/local/lib/rbitcoin/settings.py
 # as app files would stay at its install version for the life of the app.
 # The entrypoint puts a copy in /web on every start, which the compose file
 # shares with the nginx container, so the page moves with the image digest.
-COPY docker/rbitcoin/web /usr/share/beignet-rbitcoin/web
-RUN chmod 755 /usr/local/bin/entrypoint.sh && chmod -R a+rX /usr/share/beignet-rbitcoin
+COPY docker/web /usr/share/rbitcoin-umbrel/web
+RUN chmod 755 /usr/local/bin/entrypoint.sh && chmod -R a+rX /usr/share/rbitcoin-umbrel
 EXPOSE 50001 9332 9333
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -3,19 +3,19 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      # The status page, by pinned container name for the same reason
-      # beignet-wallet pins its manager (see that compose file): a derived
-      # name depends on the compose binary, and app_proxy waits forever on a
-      # name that does not resolve.
-      APP_HOST: beignet-rbitcoin_web_1
+      # The status page, by pinned container name: a derived name depends on
+      # the compose binary, and app_proxy waits forever on a name that does
+      # not resolve.
+      APP_HOST: rbitcoin-node_web_1
       APP_PORT: 80
 
   node:
-    # Pinned so Beignet's preset and the status page can address this
-    # container by name on the shared umbrel_main_network. Fixed IPs (the
-    # official apps' choice) need an address nobody else on 10.21.21.x uses,
-    # which a community app cannot verify; a name needs nothing.
-    container_name: beignet-rbitcoin_node_1
+    # Pinned so other apps (Beignet's preset among them) and the status page
+    # can address this container by name on the shared umbrel_main_network.
+    # Fixed IPs (the official apps' choice) need an address nobody else on
+    # 10.21.21.x uses, which a community app cannot verify; a name needs
+    # nothing.
+    container_name: rbitcoin-node_node_1
     # Tag is <rbitcoin release>-<app patch> and equals `version` in
     # umbrel-app.yml, so a packaging fix can ship without a new upstream
     # release (0.8.0-2) and check-release's tag-equals-version rule holds. The
@@ -37,7 +37,7 @@ services:
       - ${APP_DATA_DIR}/settings:/settings
       # The status page, written here by this image's entrypoint on every
       # start and read by the web container below. It lives in the image
-      # (docker/rbitcoin/web) because umbrelOS copies app files into
+      # (docker/web) because umbrelOS copies app files into
       # APP_DATA_DIR at install and, on update, only docker-compose.yml,
       # *.template, exports.sh, torrc and hooks: a page shipped as app files
       # would stay at its install version for the life of the app.
@@ -90,19 +90,27 @@ services:
       - --metrics
 
   settings:
-    container_name: beignet-rbitcoin_settings_1
+    container_name: rbitcoin-node_settings_1
     # The same release image runs only the settings API as uid 1000.
     image: ghcr.io/coreyphillips/rbitcoin:0.8.99-2@sha256:7e38f04c385efa86df0985bfb90f72b2e0a882e2468b9b5d94ebbf12fbe13659
     restart: on-failure
     init: true
     command: ["settings-server"]
+    environment:
+      # The containers allowed to write settings: this app's web container,
+      # and its app_proxy under each name a compose binary gives it (umbrelOS
+      # 2's app gateway is the Docker host and needs no name). Set here as
+      # well as defaulted in docker/settings.py, so the names follow the app
+      # id even on an image built before the app had this id.
+      WEB_HOST: rbitcoin-node_web_1
+      APP_PROXY_HOSTS: "app_proxy_rbitcoin-node,rbitcoin-node_app_proxy_1,rbitcoin-node-app_proxy-1"
     volumes:
       - ${APP_DATA_DIR}/settings:/settings
     # No published port, Docker socket, chain data, or restart access.
 
   web:
     # Pinned because app_proxy addresses it by name.
-    container_name: beignet-rbitcoin_web_1
+    container_name: rbitcoin-node_web_1
     # The official nginx image renders the template directory's *.tmpl files
     # with envsubst at start, which is all the templating the status page
     # needs: static assets poll node health through /node/ and save defaults
@@ -139,5 +147,5 @@ services:
       LAN_HOST: "${DEVICE_DOMAIN_NAME:-umbrel.local}"
       PUBLIC_PORT: "${APP_RBITCOIN_PUBLIC_PORT:-50011}"
       APP_VERSION: "${APP_VERSION:-dev}"
-      NODE_HOST: beignet-rbitcoin_node_1
-      SETTINGS_HOST: beignet-rbitcoin_settings_1
+      NODE_HOST: rbitcoin-node_node_1
+      SETTINGS_HOST: rbitcoin-node_settings_1

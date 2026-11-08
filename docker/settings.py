@@ -208,8 +208,8 @@ if __name__ == "__main__":
     settings = Settings(os.environ.get("SETTINGS_DIR", "/settings"))
     if sys.argv[1:2] == ["serve"]:
         # One writer serializes revision checks and atomic saves.
-        proxy_hosts = os.environ.get("APP_PROXY_HOSTS", "app_proxy_beignet-rbitcoin,beignet-rbitcoin_app_proxy_1,beignet-rbitcoin-app_proxy-1").split(",")
-        guard = SourceGuard(os.environ.get("WEB_HOST", "beignet-rbitcoin_web_1"), proxy_hosts,
+        proxy_hosts = os.environ.get("APP_PROXY_HOSTS", "app_proxy_rbitcoin-node,rbitcoin-node_app_proxy_1,rbitcoin-node-app_proxy-1").split(",")
+        guard = SourceGuard(os.environ.get("WEB_HOST", "rbitcoin-node_web_1"), proxy_hosts,
                             host_sources=host_gateways)
         HTTPServer(("0.0.0.0", 9333), handler_for(settings, guard)).serve_forever()
     else:

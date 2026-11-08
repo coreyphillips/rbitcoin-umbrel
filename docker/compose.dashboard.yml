@@ -1,5 +1,5 @@
 # Use a locally built image with the normal app service wiring.
-# Combine with beignet-rbitcoin/docker-compose.yml in an Umbrel dev environment.
+# Combine with rbitcoin-node/docker-compose.yml in an Umbrel dev environment.
 services:
   node:
     image: rbitcoin:dashboard

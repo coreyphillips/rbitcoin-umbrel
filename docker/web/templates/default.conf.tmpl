@@ -3,7 +3,7 @@
 # only the names in NGINX_ENVSUBST_FILTER (LAN_HOST, PUBLIC_PORT,
 # APP_VERSION, NODE_HOST, SETTINGS_HOST) are substituted, so $uri and the other nginx
 # variables below are nginx's own. /web is filled by the node image's
-# entrypoint on every start (see docker/rbitcoin/Dockerfile for why the
+# entrypoint on every start (see docker/Dockerfile for why the
 # page ships in that image rather than as app files).
 server {
     listen 80;

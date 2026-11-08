@@ -1,0 +1,186 @@
+name: check-release
+
+# umbrelOS installs the apps in this store straight from `main`. The moment a
+# commit lands there, every Umbrel that syncs the store will try to pull the
+# images named in the app's docker-compose.yml. If an image does not exist
+# yet, the pull fails, the container is never created, and app_proxy waits
+# forever on a backend that will never appear: the app hangs on "Starting"
+# with no way to tell why.
+#
+# An image is built from a git tag, so it can only exist after the tag is
+# pushed. Requiring the compose file to name it by digest closes the gap: a
+# digest cannot be known until the image is published, so a digest that
+# resolves is proof the image is there. This check enforces that, and blocks
+# the merge rather than reporting the breakage after users have already hit it.
+#
+# The release order it implies:
+#   1. merge the code, leaving `version` and the image alone
+#   2. tag it (v<version>), and let build-image publish the image
+#   3. open a second PR bumping `version` plus the image tag and digest together
+#
+# Step 3 is the only commit that changes what Umbrel is told to install, and it
+# cannot pass this check until the thing it points at is real.
+#
+# The rules: every image in the compose file is digest-pinned, and the app's
+# own image (the one under ghcr.io/coreyphillips/) carries the app's version
+# as its tag and resolves in the registry, fetched anonymously as an Umbrel
+# would.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'rbitcoin-node/docker-compose.yml'
+      - 'rbitcoin-node/umbrel-app.yml'
+      - 'docker/Dockerfile'
+      - '.github/workflows/check-release.yml'
+  push:
+    branches: [main]
+
+jobs:
+  image-exists:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The images Umbrel is told to install must already exist
+        run: |
+          set -euo pipefail
+
+          COMPOSE=rbitcoin-node/docker-compose.yml
+          MANIFEST=rbitcoin-node/umbrel-app.yml
+
+          # An app that is not published yet (its manifest and compose land
+          # together in the release PR) has nothing to check. One file
+          # without the other is a half-published app: a manifest alone
+          # lists an app that cannot be installed, a compose alone is
+          # invisible, so neither passes.
+          if [ ! -f "$COMPOSE" ] && [ ! -f "$MANIFEST" ]; then
+            echo "rbitcoin-node has no manifest and no compose on this branch; nothing to check."
+            exit 0
+          fi
+          if [ ! -f "$COMPOSE" ] || [ ! -f "$MANIFEST" ]; then
+            echo "::error::rbitcoin-node has one of umbrel-app.yml and docker-compose.yml but not the other; an app ships both or neither."
+            exit 1
+          fi
+
+          APP_VERSION=$(grep -oE '^version: *"[^"]+"' "$MANIFEST" | sed 's/.*"\(.*\)"/\1/')
+          echo "app version : $APP_VERSION"
+
+          # 1. Every image is digest-pinned, the app's own and the sidecar
+          #    (nginx) alike: a tag alone can move under the app.
+          grep -oE '^\s*image: *[^[:space:]]+' "$COMPOSE" | sed -E 's/^\s*image: *//' | while read -r IMAGE; do
+            echo "image       : $IMAGE"
+            case "$IMAGE" in
+              *@sha256:*) ;;
+              *)
+                echo "::error::$COMPOSE names $IMAGE without an @sha256: digest."
+                echo "::error::Pin every image to a digest, so main cannot advertise an image that does not exist yet or that has moved."
+                exit 1
+                ;;
+            esac
+          done
+
+          # The app's own image, built by this repository's workflows.
+          IMAGE=$(grep -oE 'ghcr\.io/coreyphillips/[^[:space:]]+' "$COMPOSE" | head -1)
+          if [ -z "$IMAGE" ]; then
+            echo "::error::$COMPOSE names no ghcr.io/coreyphillips/ image."
+            exit 1
+          fi
+          REF=${IMAGE%@*}
+          DIGEST=${IMAGE#*@}
+          TAG=${REF##*:}
+          REPO=${REF%:*}
+          REPO=${REPO#ghcr.io/}
+
+          # 2. The tag must be the app version, or Umbrel shows one version and
+          #    installs another.
+          if [ "$TAG" != "$APP_VERSION" ]; then
+            echo "::error::Image tag ($TAG) does not match the app version ($APP_VERSION)."
+            exit 1
+          fi
+
+          # 3. The digest must actually resolve. This is the part that would have
+          #    caught Beignet's v0.6.0. A multi-arch index or a single manifest
+          #    both count.
+          TOKEN=$(curl -fsSL "https://ghcr.io/token?scope=repository:${REPO}:pull&service=ghcr.io" | sed -E 's/.*"token":"([^"]+)".*/\1/')
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json' \
+            "https://ghcr.io/v2/${REPO}/manifests/${DIGEST}")
+
+          if [ "$CODE" != "200" ]; then
+            echo "::error::$IMAGE is not in the registry (HTTP $CODE)."
+            echo "::error::Tag the release and let the build publish it before pointing main at it."
+            exit 1
+          fi
+
+          echo "ok: the image exists, and it is what the manifest says it is."
+
+  # The release notes are the one place a user learns which rbitcoin the app
+  # runs, and they are written by hand while the one pin is the
+  # RBITCOIN_VERSION ARG in the Dockerfile. The app version must be that
+  # release plus an app patch (0.8.99-3), and the notes must name it.
+  # Only on a PR that changes the manifest, which is the release PR: the
+  # Dockerfile legitimately moves ahead of the manifest between a merge and
+  # the release that follows it.
+  rbitcoin-release-notes:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Only a PR that changes this app's manifest is its release PR
+        id: touched
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh pr diff "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --name-only | grep -qx 'rbitcoin-node/umbrel-app.yml'; then
+            echo "manifest=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "This PR does not change rbitcoin-node/umbrel-app.yml; it is not an rbitcoin release PR, nothing to check."
+            echo "manifest=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: The app version and release notes must name the rbitcoin release the image carries
+        if: steps.touched.outputs.manifest == 'yes'
+        run: |
+          set -euo pipefail
+
+          DOCKERFILE=docker/Dockerfile
+          MANIFEST=rbitcoin-node/umbrel-app.yml
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "::error::this PR touches $MANIFEST but leaves no manifest behind; removing the app is not a release."
+            exit 1
+          fi
+
+          RB=$(sed -nE 's/^ARG RBITCOIN_VERSION=(.+)$/\1/p' "$DOCKERFILE")
+          if [ -z "$RB" ]; then
+            echo "::error::$DOCKERFILE pins no RBITCOIN_VERSION."
+            exit 1
+          fi
+          echo "bundled rbitcoin: $RB"
+
+          APP_VERSION=$(grep -oE '^version: *"[^"]+"' "$MANIFEST" | sed 's/.*"\(.*\)"/\1/')
+          case "$APP_VERSION" in
+            "$RB"-*) ;;
+            *)
+              echo "::error::$MANIFEST version ($APP_VERSION) must be \"$RB-<app patch>\", the rbitcoin release $DOCKERFILE pins plus a packaging number."
+              exit 1
+              ;;
+          esac
+
+          NOTES=$(awk '/^releaseNotes:/{on=1; next} on && /^[^[:space:]]/{exit} on{print}' "$MANIFEST" | tr '\n' ' ' | tr -s ' ')
+          if [ -z "$NOTES" ]; then
+            echo "::error::$MANIFEST has no releaseNotes."
+            exit 1
+          fi
+          ESCAPED=$(printf '%s' "$RB" | sed 's/\./\\./g')
+          if ! printf '%s\n' "$NOTES" | grep -qE "rbitcoin ${ESCAPED}([^0-9]|$)"; then
+            echo "::error::The release notes in $MANIFEST do not mention \"rbitcoin $RB\", the release $DOCKERFILE pins."
+            exit 1
+          fi
+
+          echo "ok: version $APP_VERSION and the release notes name rbitcoin $RB."

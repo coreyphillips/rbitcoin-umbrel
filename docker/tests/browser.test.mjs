@@ -28,7 +28,7 @@ try {
   const defaults = { maxOutbound: 16, maxInbound: 125, mempoolSize: 300, logLevel: 'info' };
   let saved = { ...defaults };
   const json = value => ({ contentType: 'application/json', body: JSON.stringify(value) });
-  await page.route('**/config.json', route => route.fulfill(json({ lan: 'umbrel.local:50011', internal: 'beignet-rbitcoin_node_1:50001', appVersion: 'preview' })));
+  await page.route('**/config.json', route => route.fulfill(json({ lan: 'umbrel.local:50011', internal: 'rbitcoin-node_node_1:50001', appVersion: 'preview' })));
   await page.route('**/api/settings', async route => {
     if (route.request().method() === 'PUT') {
       if (failSave) return route.fulfill({ status: 409, ...json({ error: 'Settings changed in another window. Reload settings before saving.' }) });

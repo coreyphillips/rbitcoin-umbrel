@@ -8,7 +8,7 @@
 # cannot serve a Beignet wallet. Used by the smoke workflow and handy against
 # a live box:
 #
-#   bash beignet-rbitcoin/scripts/electrum-check.sh umbrel.local 50011 mainnet
+#   bash scripts/electrum-check.sh umbrel.local 50011 mainnet
 #
 # The node binds its Electrum listener only once catch-up and the scripthash
 # index are done, a few seconds after /healthz answers, and a published Docker
@@ -47,7 +47,7 @@ scripthash=9623df75239b5daa7f5f03042d325b51498c4bb7059c7748b17049bf96f73888
 converse() {
   local version features batch
   exec 3<>"/dev/tcp/$host/$port" || return 1
-  printf '%s\n' '{"jsonrpc":"2.0","id":0,"method":"server.version","params":["beignet-rbitcoin-smoke","1.4"]}' >&3 || return 1
+  printf '%s\n' '{"jsonrpc":"2.0","id":0,"method":"server.version","params":["rbitcoin-umbrel-smoke","1.4"]}' >&3 || return 1
   read -r -t "$(left)" version <&3 || return 1
   printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"server.features","params":[]}' >&3 || return 1
   read -r -t "$(left)" features <&3 || return 1
