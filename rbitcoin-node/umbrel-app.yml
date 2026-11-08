@@ -1,17 +1,17 @@
 manifestVersion: 1.1
-id: beignet-rbitcoin
+id: rbitcoin-node
 name: rbitcoin
-tagline: A Rust Bitcoin full node that serves Electrum, for Beignet and LAN wallets
-icon: https://raw.githubusercontent.com/coreyphillips/beignet-umbrel/main/beignet-rbitcoin/icon.svg
+tagline: A Rust Bitcoin full node that serves Electrum to your wallets
+icon: https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/icon.svg
 category: bitcoin
 version: "0.8.99-2"
 port: 2114
 description: >-
   rbitcoin is a Bitcoin full node written in Rust that downloads and validates
   the chain itself and serves the Electrum protocol from the same process. It
-  needs no Bitcoin Core and no separate indexer. Install it to give Beignet, and
-  any Electrum wallet on your home network, a server that runs on your own
-  Umbrel.
+  needs no Bitcoin Core and no separate indexer. Install it to give your
+  Electrum wallets, on this Umbrel (Beignet among them) and on your home
+  network, a server that runs on your own Umbrel.
 
 
   Read this before installing. rbitcoin is young software: its author calls the
@@ -40,17 +40,17 @@ description: >-
 
 
   Connect using the addresses shown in the dashboard:
-  beignet-rbitcoin_node_1:50001 from apps on this Umbrel (Beignet has a
+  rbitcoin-node_node_1:50001 from apps on this Umbrel (Beignet has a
   one-click preset), and umbrel.local:50011 from the rest of your home network.
   Connections are plain TCP without TLS, meant for your own network only.
 developer: Brandon Black (rbitcoin), packaged by Corey Phillips
-website: https://github.com/reardencode/rbitcoin
+website: https://github.com/rbitcoin-org/rbitcoin
 submitter: Corey Phillips
-submission: https://github.com/coreyphillips/beignet-umbrel
-repo: https://github.com/coreyphillips/beignet-umbrel
-support: https://github.com/coreyphillips/beignet-umbrel/issues
+submission: https://github.com/coreyphillips/rbitcoin-umbrel
+repo: https://github.com/coreyphillips/rbitcoin-umbrel
+support: https://github.com/coreyphillips/rbitcoin-umbrel/issues
 gallery:
-  - https://raw.githubusercontent.com/coreyphillips/beignet-umbrel/main/beignet-rbitcoin/gallery/1.png
+  - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/1.png
 releaseNotes: >-
   A redesigned dashboard for rbitcoin 0.8.99, with sync and block history,
   network traffic, peer and mempool visualizations, clearer wallet connection

@@ -15,10 +15,10 @@ fi
 # carries the app version umbrelOS exports, and the nginx container waits
 # for the stamp to name its own version before it renders the template, so
 # a start after an update never serves the previous version's page.
-if [ -d /usr/share/beignet-rbitcoin/web ]; then
+if [ -d /usr/share/rbitcoin-umbrel/web ]; then
   mkdir -p /web
   rm -rf /web/templates /web/html
-  cp -R /usr/share/beignet-rbitcoin/web/. /web/
+  cp -R /usr/share/rbitcoin-umbrel/web/. /web/
   printf '%s' "${APP_VERSION:-dev}" > /web/.version.tmp
   mv -f /web/.version.tmp /web/.version
 fi

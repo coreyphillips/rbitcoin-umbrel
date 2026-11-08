@@ -40,8 +40,8 @@ Appearance (device, light, or dark), refresh frequency (5, 10, or 30 seconds), a
 From the repository root:
 
 ```sh
-python3 -m unittest discover -s docker/rbitcoin/tests -p 'test_*.py'
-node --test docker/rbitcoin/tests/model.test.mjs
+python3 -m unittest discover -s docker/tests -p 'test_*.py'
+node --test docker/tests/model.test.mjs
 ```
 
 The browser test uses Playwright installed outside the repository:
@@ -50,7 +50,7 @@ The browser test uses Playwright installed outside the repository:
 npm install --prefix /tmp/rbitcoin-browser playwright@1.62.1
 /tmp/rbitcoin-browser/node_modules/.bin/playwright install chromium
 PLAYWRIGHT_MODULE=/tmp/rbitcoin-browser/node_modules/playwright \
-  node docker/rbitcoin/tests/browser.test.mjs
+  node docker/tests/browser.test.mjs
 ```
 
 Set `SCREENSHOT_DIR` to an existing directory to capture desktop, mobile, and dark-mode screenshots. Browser fixtures are test-only and are never shipped with the dashboard. The test covers ready, syncing, indexing, offline, and missing-metric states; saving and restoring settings; a conflicting save; persisted display choices; copying addresses; and overflow checks from 320 to 1440 pixels.
@@ -59,16 +59,16 @@ For the actual image and backend:
 
 ```sh
 docker buildx build --load --platform linux/amd64 \
-  -f docker/rbitcoin/Dockerfile -t rbitcoin:dashboard .
-sh docker/rbitcoin/tests/smoke.sh
+  -f docker/Dockerfile -t rbitcoin:dashboard .
+sh docker/tests/smoke.sh
 ```
 
 The runtime smoke uses unique temporary containers, private volumes, an isolated regtest node, and a localhost-only web port. It checks the actual nginx module MIME type, legacy proxy chain, and native host gateway path, rejects cross-origin and direct-app writes, saves settings, checks a clean stop, restarts the node, and verifies that the reported mempool cap changed. It cleans up its containers, network, and volumes. It never mounts an installed app or mainnet data. The existing Electrum and node lifecycle smoke remains in CI alongside these checks.
 
 ## Development and release
 
-`docker/rbitcoin/compose.dashboard.yml` selects the local `rbitcoin:dashboard` image for both app services. Combine it with the base app compose file in an Umbrel development environment, where Umbrel supplies its authenticated gateway and shared app network. For isolated local verification, use the regtest smoke above instead of starting mainnet.
+`docker/compose.dashboard.yml` selects the local `rbitcoin:dashboard` image for both app services. Combine it with the base app compose file in an Umbrel development environment, where Umbrel supplies its authenticated gateway and shared app network. For isolated local verification, use the regtest smoke above instead of starting mainnet.
 
-Release the image before updating the app store configuration. After publishing a new app tag, pin both `node` and `settings` to its verified digest and update the app manifest version and release notes together. Keep the settings volume on both services and the `SETTINGS_HOST` environment and nginx substitution filter in place. Explicit node command flags override saved settings, so the normal release command leaves the editable settings out.
+Release the image before updating the app store configuration. After publishing a new app tag, pin both `node` and `settings` to its verified digest and update the app manifest version and release notes together. Keep the settings volume on both services, the `WEB_HOST` and `APP_PROXY_HOSTS` environment on `settings` (the names its write guard admits, which follow the app id), and the `SETTINGS_HOST` environment and nginx substitution filter on `web` in place. Explicit node command flags override saved settings, so the normal release command leaves the editable settings out.
 
 Run the release checks and the runtime smoke against the published image before merging the release configuration. No chain-data migration or fresh sync is needed for the 0.8.99-2 dashboard update.
