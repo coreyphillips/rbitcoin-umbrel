@@ -4,7 +4,7 @@ name: rbitcoin
 tagline: A Rust Bitcoin full node that serves Electrum to your wallets
 icon: https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/icon.svg
 category: bitcoin
-version: "0.8.99-2"
+version: "0.8.99-3"
 port: 2114
 description: >-
   rbitcoin is a Bitcoin full node written in Rust that downloads and validates
@@ -52,14 +52,14 @@ support: https://github.com/coreyphillips/rbitcoin-umbrel/issues
 gallery:
   - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/1.png
 releaseNotes: >-
-  A redesigned dashboard for rbitcoin 0.8.99, with sync and block history,
-  network traffic, peer and mempool visualizations, clearer wallet connection
-  instructions, and light and dark themes. New persistent settings let you
-  adjust peer limits, mempool capacity, and log detail, restore defaults, and
-  see which changes need an app restart. Settings support both legacy Umbrel
-  proxy containers and the native Umbrel 2 app gateway. The bundled node is
-  unchanged from the previous app release. No fresh sync or data wipe is
-  needed. Restart the app after saving node settings to apply them.
+  rbitcoin 0.8.99 in its own app store. This is the same node and dashboard
+  as the last rbitcoin release in the Beignet store, now published as its own
+  app from the rbitcoin store. If you ran rbitcoin from the Beignet store, you
+  can keep your synced chain instead of syncing again: stop the old app,
+  install this one and stop it, move the old app's data and settings
+  directories across, then start this one. The commands are in the store's
+  README at github.com/coreyphillips/rbitcoin-umbrel. The on-disk format is
+  unchanged, so no fresh sync or data wipe is needed.
 dependencies: []
 backupIgnore:
   - data
