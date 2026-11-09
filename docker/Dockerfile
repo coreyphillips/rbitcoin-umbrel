@@ -10,9 +10,11 @@
 # build-image.yml and check-release.yml read these ARG lines.
 # RBITCOIN_VERSION is the workspace version in that commit's Cargo.toml (what
 # the binary reports), and the build refuses a commit that says otherwise.
-# The last upstream release, 0.8.0, predates the Electrum JSON-RPC batch
-# support Beignet's client needs (rbitcoin PR 1155, for issue 1152), so the
-# app builds master until a release carries it.
+# The app follows upstream master, pinned to a commit and moved forward on
+# purpose, rather than the published releases: master is where upstream
+# works toward the next release (0.9.99 on the way to 0.10.0), and the 0.8.0
+# release predated the Electrum JSON-RPC batch support Beignet's client
+# needs (rbitcoin PR 1155, for issue 1152, released in 0.9.0).
 #
 # The build uses the flags upstream's release build sets (nix/rbitcoin.nix:
 # release profile, no debuginfo, stripped symbols, crt-static, the build
@@ -20,9 +22,9 @@
 # RUST_IMAGE must carry, and a fixed SOURCE_DATE_EPOCH, so the binary is
 # reproducible: RBITCOIN_NODE_SHA256 is its checksum, and a build that does
 # not reproduce it fails instead of shipping.
-ARG RBITCOIN_VERSION=0.8.99
-ARG RBITCOIN_COMMIT=8e62e4ce4d60c30abc851cb0893e4b80149ac9e4
-ARG RBITCOIN_NODE_SHA256=eb08aecb703b0e526a879a92cb3914f902325dbbcdb0c35c3c58f62dbcc88426
+ARG RBITCOIN_VERSION=0.9.99
+ARG RBITCOIN_COMMIT=ee509bf0ba2546d9764f79775fb4215439494d9b
+ARG RBITCOIN_NODE_SHA256=0e50f5c742e968d050dee52f7fbca8c8b01f34a9593f79cb26ee798f7f9e9e39
 ARG RUST_IMAGE=rust:1.95.0-alpine3.22@sha256:064dfc925d68d1a63f4fd2871bd7dc6e6ea56692989a487185855d62885d90aa
 ARG ALPINE_IMAGE=alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654
 

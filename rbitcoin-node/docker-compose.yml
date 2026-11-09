@@ -63,8 +63,9 @@ services:
     # Network, data paths, indexing and bindings stay fixed here. The dashboard
     # saves peer, mempool and logging defaults in /settings. The launcher adds
     # them before these arguments, so explicit compose flags take precedence.
-    #   --network mainnet      the upstream default --milestone (840000)
-    #                          applies: script checks start at that block;
+    #   --network mainnet      the upstream default --milestone (966143,
+    #                          Bitcoin Core 32.1's assumevalid block)
+    #                          applies: script checks start after it;
     #                          add "--milestone", "0" for full validation
     #   --sh-index             address history, which every wallet needs
     #   --electrum-listen      all interfaces inside the container; the ports:

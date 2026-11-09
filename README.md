@@ -4,6 +4,12 @@ A [community app store](https://github.com/getumbrel/umbrel-community-app-store)
 
 The app depends on no other app. [Beignet](https://github.com/coreyphillips/beignet-umbrel) has a one-click preset for it, and any Electrum wallet can use it.
 
+<p align="center">
+  <img src="docs/images/dashboard-ready.png" alt="The rbitcoin dashboard in the light theme on a synced node: In sync, 100 percent and ready for wallets, with block height, peers, mempool and uptime, block height and download traffic charts, peer networks and mempool capacity" width="49%">
+  <img src="docs/images/dashboard-sync.png" alt="The rbitcoin dashboard in the dark theme during the first sync: catching up with Bitcoin at 75.8 percent, with the estimated time left, a rising block height chart and download traffic around 13 MiB/s" width="49%">
+</p>
+<p align="center"><sub>The app's dashboard on a synced node (light theme) and during the first sync (dark theme), rendered from <code>docker/web</code> with sample figures.</sub></p>
+
 ## Install on Umbrel
 
 1. In umbrelOS, open the **App Store**, then **Community App Stores**.
@@ -32,12 +38,12 @@ The node and its on-disk store are the same, so you can move a synced chain over
 
 ## Read this first
 
-rbitcoin is young software. In its author's words the mainnet release is "early production / high-scrutiny", "not a Core or Fulcrum replacement", and "production multi-tenant Electrum" is a listed non-goal. Use it for your own wallets on this Umbrel and your LAN, not as a public server.
+rbitcoin is young software. Upstream says "Mainnet is the network to run" and calls a consensus split "vanishingly unlikely", and plans further hardening, a support window and signed release binaries for 1.0. "Production multi-tenant Electrum" is a listed non-goal. Use it for your own wallets on this Umbrel and your LAN, not as a public server.
 
-- **x86_64 only.** The image builds rbitcoin for Linux x86_64 only, as upstream's releases do (they also cover Windows and macOS arm64, not Linux arm64). An Umbrel Home runs it; a Raspberry Pi Umbrel cannot. On a Pi the app installs and its page says the node is not answering and why.
+- **x86_64 only.** The image builds rbitcoin for Linux x86_64 only. Upstream has published a Linux aarch64 build since 0.9.0, but this app does not build one yet. An Umbrel Home runs it; a Raspberry Pi Umbrel cannot. On a Pi the app installs and its page says the node is not answering and why.
 - **Disk.** About 200 GiB for the hot store, about 750 GiB with the cold append-only files. The data lives under the app's data directory and is excluded from Umbrel backups (`backupIgnore` in the manifest): it is hundreds of GiB and can always be rebuilt from the network.
-- **Time.** Upstream quotes "under ~30 h" for the first sync on laptop-class hardware. Expect a day or more on a home box. rbitcoin opens its Electrum port only after the first sync (its [interfaces guide](https://github.com/rbitcoin-org/rbitcoin/blob/v0.8.0/docs/operator/interfaces.md) says the listeners bind "only after initial catch-up"), so until then a wallet is refused the connection. Beignet keeps a wallet in its waiting state and starts it when the port opens.
-- **Validation.** The app runs mainnet with upstream's defaults, which means the default `--milestone` of block 840000. As with Bitcoin Core's assumevalid, script and signature checks are skipped for blocks up to and including that one ([architecture notes](https://github.com/rbitcoin-org/rbitcoin/blob/v0.8.0/docs/architecture.md)); the chain of headers and each block's transactions and spends are still checked, and every block after it is fully validated. Full validation from genesis is `--milestone 0` in the compose file's `command:`, at the cost of a longer sync.
+- **Time.** Upstream quotes "under ~30 h" for the first sync on laptop-class hardware. Expect a day or more on a home box. rbitcoin opens its Electrum port only after the first sync (its [interfaces guide](https://github.com/rbitcoin-org/rbitcoin/blob/ee509bf0ba2546d9764f79775fb4215439494d9b/docs/operator/interfaces.md) says the listeners bind "only after initial catch-up"), so until then a wallet is refused the connection. Beignet keeps a wallet in its waiting state and starts it when the port opens.
+- **Validation.** The app runs mainnet with upstream's defaults, which means the default `--milestone`: block 966143, the block Bitcoin Core 32.1 assumes valid (0.8 used block 840000). As with Core's assumevalid, script and signature checks are skipped for blocks up to and including that one when it is on the chain being followed ([architecture notes](https://github.com/rbitcoin-org/rbitcoin/blob/ee509bf0ba2546d9764f79775fb4215439494d9b/docs/architecture.md)); the chain of headers, each block's transactions, their inputs existing and unspent, and the fees are still checked, and every block after it is fully validated. Changing the milestone does not recheck blocks already stored. Full validation from genesis is `--milestone 0` in the compose file's `command:` before the first sync, at the cost of a longer sync.
 - **Format changes before 1.0.** Some rbitcoin releases refuse an older data directory and need a wipe and a fresh sync. When an update of this app needs that, its release notes in the app store say so.
 
 ## Connecting
@@ -66,6 +72,7 @@ The health listener (`/healthz`, `/readyz`, `/progress`, `/metrics` on port 9332
 | `docker/settings.py` | Validated persistent defaults, launch records, and an API restricted to this app's Umbrel gateway |
 | `docker/tests/` | Unit tests for the settings service and the dashboard model, the browser test, and the runtime smoke |
 | `scripts/electrum-check.sh` | One Electrum conversation in bash, including the JSON-RPC batch Beignet's client sends, used by the smoke test and handy against a live box |
+| `scripts/screenshots.mjs` | Renders the dashboard with sample figures into `docs/images` (this README) and `rbitcoin-node/gallery` (the app store listing); rerun it after a dashboard change |
 | `.github/workflows/` | `build-image.yml` (publishes the image on a `v*` tag), `smoke.yml` (tests, image build and a regtest run on every PR that touches the app), `check-release.yml` (see Releasing) |
 
 The status page ships inside the node image rather than as app files. umbrelOS copies an app's directory into its data directory at install, but on update it copies only `docker-compose.yml`, `*.template`, `exports.sh`, `torrc` and `hooks`, so files shipped beside the compose file would stay at their install version for the life of the app. Instead the node's entrypoint copies the page into `${APP_DATA_DIR}/web` on every start and stamps it with the app version; the nginx container mounts the same directory, waits for the stamp to name its own version, and only then renders the template. A page fix is therefore an image rebuild (a new app patch) and reaches existing installs like any other update.
@@ -84,16 +91,16 @@ Appearance, refresh frequency, and chart history are saved in your browser and a
 
 ## Releasing
 
-The version string is `<rbitcoin version>-<app patch>` and is also the image tag. `<rbitcoin version>` is the workspace version in the pinned commit's `Cargo.toml`, which is also what the binary reports: `0.8.0` for the 0.8.0 release, `0.8.99` for master on its way to 0.9.0. A packaging fix or a later commit with the same workspace version is a new app patch (`0.8.99-2`); a new workspace version starts the patch over (`0.9.0-1`).
+The version string is `<rbitcoin version>-<app patch>` and is also the image tag. `<rbitcoin version>` is the workspace version in the pinned commit's `Cargo.toml`, which is also what the binary reports: `0.9.0` for the 0.9.0 release, `0.9.99` for master on its way to 0.10.0. A packaging fix or a later commit with the same workspace version is a new app patch (`0.9.99-2`); a new workspace version starts the patch over (`0.10.0-1`).
 
-The image builds `rbitcoin-node` from source because the last upstream release, 0.8.0, predates the Electrum JSON-RPC batch support Beignet's client needs. The build uses upstream's release flags (`nix/rbitcoin.nix`), the toolchain `rust-toolchain.toml` pins and a fixed `SOURCE_DATE_EPOCH`, so the binary is reproducible and its checksum can be pinned like a release asset's.
+The image builds `rbitcoin-node` from source, from a pinned upstream master commit: the app follows master, moved forward on purpose, rather than the published releases (the 0.8.0 release predated the Electrum JSON-RPC batch support Beignet's client needs, which 0.9.0 now carries). The build uses upstream's release flags (`nix/rbitcoin.nix`), the toolchain `rust-toolchain.toml` pins and a fixed `SOURCE_DATE_EPOCH`, so the binary is reproducible and its checksum can be pinned like a release asset's.
 
 1. In `docker/Dockerfile`, set `RBITCOIN_COMMIT` to an upstream commit on master, `RBITCOIN_VERSION` to its `Cargo.toml` workspace version, and `RUST_IMAGE` to the official `rust:<version>-alpine` image (tag and digest) for the toolchain its `rust-toolchain.toml` names. The build refuses a commit that is not on master or whose version or toolchain does not match. Build the `build` stage for linux/amd64 (`docker buildx build --platform linux/amd64 --target build -f docker/Dockerfile .`): it prints the binary's SHA-256 and then fails the checksum, so copy that value into `RBITCOIN_NODE_SHA256` and build again to see it pass (only the check reruns). Merge. The `smoke` workflow builds the image on its own runner, which checks that the build reproduces the pinned checksum, and runs it on regtest on every PR touching it.
-2. Tag `v<version>` with a signed, annotated tag on the merge commit (`git tag -a v0.8.99-3 -m "rbitcoin-node 0.8.99-3" <sha>`; the build refuses a tag that is not the pinned release plus a number) and let `build-image` publish `ghcr.io/coreyphillips/rbitcoin-umbrel:<version>`. The package must be public for Umbrels to pull it. If GHCR creates it private, change its visibility in the package's settings on GitHub; `check-release`'s anonymous fetch of the digest is what tells you.
+2. Tag `v<version>` with a signed, annotated tag on the merge commit (`git tag -a v0.9.99-1 -m "rbitcoin-node 0.9.99-1" <sha>`; the build refuses a tag that is not the pinned release plus a number) and let `build-image` publish `ghcr.io/coreyphillips/rbitcoin-umbrel:<version>`. The package must be public for Umbrels to pull it. If GHCR creates it private, change its visibility in the package's settings on GitHub; `check-release`'s anonymous fetch of the digest is what tells you.
 3. In one PR, set `version` and `releaseNotes` in `umbrel-app.yml` and pin both `node` and `settings` in `docker-compose.yml` to the published image tag and digest:
 
    ```sh
-   docker buildx imagetools inspect ghcr.io/coreyphillips/rbitcoin-umbrel:0.8.99-3 | grep Digest
+   docker buildx imagetools inspect ghcr.io/coreyphillips/rbitcoin-umbrel:0.9.99-1 | grep Digest
    ```
 
 umbrelOS installs the app straight from `main`, so the moment a commit lands there every Umbrel that syncs the store pulls the images it names; an image that does not exist yet leaves the app stuck on "Starting". That is why the tag comes before the PR that names its image. `check-release` enforces it: every image digest-pinned, the app image's tag equal to the version and resolving in the registry, and the version and release notes naming the rbitcoin release the Dockerfile pins.

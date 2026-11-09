@@ -74,10 +74,10 @@
         <div class="field"><label for="settings-window">Chart history</label><select id="settings-window"><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60">1 hour</option></select><p>History collects while this page is open and resets on reload.</p></div>
       </div><div class="form-actions"><button type="button" id="restore-display">Reset display preferences</button><span class="small muted" id="display-message" role="status">Stored on this device</span></div></div></div>
       <details class="card about"><summary>About this node &amp; operating notes</summary><ul>
-        <li>rbitcoin is early production software intended for your own wallets. Public multi-tenant Electrum service is not a goal.</li>
-        <li>This app requires x86_64 hardware such as Umbrel Home. A Raspberry Pi Umbrel cannot run this build.</li>
+        <li>rbitcoin is young software, meant here for your own wallets. Upstream lists production multi-tenant Electrum service as a non-goal, and signed releases and a support window are planned for 1.0.</li>
+        <li>This app builds the node for x86_64 hardware such as Umbrel Home. On a Raspberry Pi Umbrel the app installs, but the node does not run.</li>
         <li>Allow roughly 750 GiB for the full store, including about 200 GiB for the hot store. Initial sync can take a day or more. Chain data is excluded from Umbrel backups.</li>
-        <li>The upstream mainnet milestone is block 840000. Script and signature checks are skipped up to that milestone on the anchored chain. Later blocks are fully validated. Changing validation policy requires an operator-managed configuration.</li>
+        <li>The upstream mainnet milestone is block 966143, the block Bitcoin Core 32.1 assumes valid. Script and signature checks are skipped up to that milestone on the chain it anchors. Later blocks are fully validated. Changing validation policy requires an operator-managed configuration.</li>
         <li>Before version 1.0, an update may require a fresh sync when the storage format changes. Check the app's release notes.</li>
       </ul></details>
     </section>
