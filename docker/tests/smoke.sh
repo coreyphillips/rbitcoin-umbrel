@@ -1,5 +1,7 @@
 #!/bin/sh
 # Isolated runtime smoke. Never mounts an installed app or mainnet data.
+# Runs the image for the Docker host's platform; set SMOKE_PLATFORM (for
+# example linux/amd64) to run another one under emulation.
 set -eu
 image=${1:-rbitcoin:dashboard}
 nginx_image=${NGINX_IMAGE:-nginx:1.30-alpine@sha256:c59d1f8b1e0e42da75be973424cd72e23f7f8adfb54e982f4d1cd0216a5a5576}
@@ -21,12 +23,12 @@ trap cleanup EXIT
 
 docker network create "$name" >/dev/null
 for volume in web settings data; do docker volume create "$name-$volume" >/dev/null; done
-docker run -d --platform linux/amd64 --name "$name-node" --network "$name" \
+docker run -d ${SMOKE_PLATFORM:+--platform "$SMOKE_PLATFORM"} --name "$name-node" --network "$name" \
   -e RBITCOIN_IO=pread -e APP_VERSION=dashboard-test \
   -v "$name-web:/web" -v "$name-settings:/settings" -v "$name-data:/data" \
   "$image" --datadir /data --network regtest --no-seeds --sh-index \
   --electrum-listen 0.0.0.0:50001 --health-listen 0.0.0.0:9332 --metrics >/dev/null
-docker run -d --platform linux/amd64 --name "$name-settings" --network "$name" \
+docker run -d ${SMOKE_PLATFORM:+--platform "$SMOKE_PLATFORM"} --name "$name-settings" --network "$name" \
   -e WEB_HOST="$name-web" -e APP_PROXY_HOSTS="$name-proxy" \
   -v "$name-settings:/settings" "$image" settings-server >/dev/null
 docker run -d --name "$name-web" --network "$name" -p 127.0.0.1::80 \

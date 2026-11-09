@@ -1,10 +1,9 @@
 # syntax=docker/dockerfile:1
-# check=skip=FromPlatformFlagConstDisallowed
 
 # The rbitcoin node (https://github.com/rbitcoin-org/rbitcoin) for the
 # rbitcoin-node Umbrel app: rbitcoin-node built from a pinned upstream
-# commit as a static musl binary, on a minimal Alpine with just enough to
-# drop privileges.
+# commit as a static musl binary for linux/amd64 and linux/arm64, on a
+# minimal Alpine with just enough to drop privileges.
 #
 # The rbitcoin source this image carries is pinned here and nowhere else:
 # build-image.yml and check-release.yml read these ARG lines.
@@ -20,23 +19,26 @@
 # release profile, no debuginfo, stripped symbols, crt-static, the build
 # directory remapped) with the toolchain rust-toolchain.toml pins, which
 # RUST_IMAGE must carry, and a fixed SOURCE_DATE_EPOCH, so the binary is
-# reproducible: RBITCOIN_NODE_SHA256 is its checksum, and a build that does
-# not reproduce it fails instead of shipping.
+# reproducible: RBITCOIN_NODE_SHA256_AMD64 and RBITCOIN_NODE_SHA256_ARM64 are
+# its checksums for each platform, and a build that does not reproduce the
+# one for its platform fails instead of shipping.
 ARG RBITCOIN_VERSION=0.9.99
 ARG RBITCOIN_COMMIT=ee509bf0ba2546d9764f79775fb4215439494d9b
-ARG RBITCOIN_NODE_SHA256=0e50f5c742e968d050dee52f7fbca8c8b01f34a9593f79cb26ee798f7f9e9e39
+ARG RBITCOIN_NODE_SHA256_AMD64=0e50f5c742e968d050dee52f7fbca8c8b01f34a9593f79cb26ee798f7f9e9e39
+ARG RBITCOIN_NODE_SHA256_ARM64=2dcfe71f56f88a806f80939bb56d822b6d4d25fc86055da985b30fa474993c1e
 ARG RUST_IMAGE=rust:1.95.0-alpine3.22@sha256:064dfc925d68d1a63f4fd2871bd7dc6e6ea56692989a487185855d62885d90aa
 ARG ALPINE_IMAGE=alpine:3.22@sha256:d406446bc05b82480756ce8f1287964d28768c23955fa9480d2a74a2eae7a654
 
-# ---- build: compile rbitcoin-node for x86_64 ----
-# Always an amd64 stage, whatever platform is being assembled: only the amd64
-# image carries the node (see node-arm64 below), so the arm64 build never
-# reaches this stage, and on an amd64 runner the compile is native. The
-# constant platform is deliberate, which is why the check directive at the
-# top skips the linter's rule against it.
-FROM --platform=linux/amd64 ${RUST_IMAGE} AS build
+# ---- build: compile rbitcoin-node for the platform being assembled ----
+# The stage runs on that platform, as upstream builds its x86_64 and aarch64
+# releases, each on a native runner: build-image.yml and smoke.yml build
+# linux/arm64 on an arm64 runner, so nothing here cross-compiles or runs
+# under emulation in CI. RUST_IMAGE and ALPINE_IMAGE are pinned by index
+# digest, which resolves to the same per-platform image everywhere.
+FROM ${RUST_IMAGE} AS build
 ARG RBITCOIN_VERSION
 ARG RBITCOIN_COMMIT
+ARG TARGETARCH
 # git to fetch the commit. The gcc, musl-dev and binutils that build the two
 # C dependencies (secp256k1-sys and libmimalloc-sys) come with RUST_IMAGE,
 # so its digest pins them along with rustc.
@@ -65,42 +67,38 @@ RUN set -eu; \
 # without the file's rustfmt and clippy components, which a build does not
 # use, and RUSTUP_AUTO_INSTALL=0 makes a missing toolchain an error instead
 # of a download. The flags go to the musl target only, so build scripts and
-# proc macros link as usual. SOURCE_DATE_EPOCH is the commit's time: mimalloc
-# compiles __DATE__ and __TIME__ into its build banner, and GCC takes both
-# from SOURCE_DATE_EPOCH when it is set (upstream's nix build sets it too),
-# so two builds of one commit give the same bytes.
+# proc macros link as usual; the variable that carries them is named after
+# the target, as upstream's nix build names it. SOURCE_DATE_EPOCH is the
+# commit's time: mimalloc compiles __DATE__ and __TIME__ into its build
+# banner, and GCC takes both from SOURCE_DATE_EPOCH when it is set
+# (upstream's nix build sets it too), so two builds of one commit give the
+# same bytes.
 RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) target=x86_64-unknown-linux-musl ;; \
+      arm64) target=aarch64-unknown-linux-musl ;; \
+      *) echo "rbitcoin-node is built for amd64 and arm64, not $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    flags="CARGO_TARGET_$(printf '%s' "$target" | tr 'a-z-' 'A-Z_')_RUSTFLAGS"; \
+    export "$flags=--remap-path-prefix /build/=/source/ -C debuginfo=0 -C strip=symbols -C target-feature=+crt-static"; \
     cd rbitcoin; \
     SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) \
     RUSTUP_TOOLCHAIN="$RUST_VERSION" \
     RUSTUP_AUTO_INSTALL=0 \
-    CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="--remap-path-prefix /build/=/source/ -C debuginfo=0 -C strip=symbols -C target-feature=+crt-static" \
-      cargo build --release --locked --target x86_64-unknown-linux-musl -p rbitcoin-node; \
-    cp target/x86_64-unknown-linux-musl/release/rbitcoin-node /build/rbitcoin-node
-# A step of its own, declared after the compile, so that changing the pin
+      cargo build --release --locked --target "$target" -p rbitcoin-node; \
+    cp "target/$target/release/rbitcoin-node" /build/rbitcoin-node
+# A step of its own, declared after the compile, so that changing a pin
 # reruns only this check. It prints the binary's checksum first, so a
 # failing build shows the value to pin in its error summary.
-ARG RBITCOIN_NODE_SHA256
-RUN sha256sum /build/rbitcoin-node; \
-    echo "${RBITCOIN_NODE_SHA256}  /build/rbitcoin-node" | sha256sum -c -
-
-# ---- the node binary for each platform ----
-FROM ${ALPINE_IMAGE} AS node-amd64
-COPY --from=build /build/rbitcoin-node /rbitcoin-node
-
-# rbitcoin ships no Linux arm64 build, and this image builds none. On a
-# Raspberry Pi Umbrel this stub takes the binary's place so the app installs,
-# the status page comes up, and it says why the node is not answering,
-# instead of the app hanging on a pull of an image that has no arm64 variant.
-FROM ${ALPINE_IMAGE} AS node-arm64
-RUN printf '%s\n' '#!/bin/sh' \
-      'while :; do' \
-      '  echo "rbitcoin publishes no Linux arm64 build. This app needs an x86_64 Umbrel (Umbrel Home); a Raspberry Pi Umbrel cannot run it." >&2' \
-      '  sleep 300' \
-      'done' > /rbitcoin-node; \
-    chmod 755 /rbitcoin-node
-
-FROM node-${TARGETARCH} AS node
+ARG RBITCOIN_NODE_SHA256_AMD64
+ARG RBITCOIN_NODE_SHA256_ARM64
+RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) sum="$RBITCOIN_NODE_SHA256_AMD64" ;; \
+      arm64) sum="$RBITCOIN_NODE_SHA256_ARM64" ;; \
+    esac; \
+    sha256sum /build/rbitcoin-node; \
+    echo "$sum  /build/rbitcoin-node" | sha256sum -c -
 
 # ---- runtime ----
 FROM ${ALPINE_IMAGE}
@@ -112,7 +110,7 @@ ENV RBITCOIN_VERSION=${RBITCOIN_VERSION} APP_VERSION=${APP_VERSION}
 # Python serves the allowlisted settings API in a separate container and
 # validates saved defaults before execing the static node binary.
 RUN apk add --no-cache su-exec python3
-COPY --from=node /rbitcoin-node /usr/local/bin/rbitcoin-node
+COPY --from=build /build/rbitcoin-node /usr/local/bin/rbitcoin-node
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY docker/settings.py /usr/local/lib/rbitcoin/settings.py
 # The status page (nginx template and HTML) travels in this image, not in

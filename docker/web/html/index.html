@@ -75,7 +75,7 @@
       </div><div class="form-actions"><button type="button" id="restore-display">Reset display preferences</button><span class="small muted" id="display-message" role="status">Stored on this device</span></div></div></div>
       <details class="card about"><summary>About this node &amp; operating notes</summary><ul>
         <li>rbitcoin is young software, meant here for your own wallets. Upstream lists production multi-tenant Electrum service as a non-goal, and signed releases and a support window are planned for 1.0.</li>
-        <li>This app builds the node for x86_64 hardware such as Umbrel Home. On a Raspberry Pi Umbrel the app installs, but the node does not run.</li>
+        <li>This app runs on x86_64 Umbrels such as Umbrel Home and on arm64 ones such as a Raspberry Pi. Upstream sizes following the chain tip at 16 GiB of memory; with less, as on a Raspberry Pi, the first sync is limited by the disk and takes much longer.</li>
         <li>Allow roughly 750 GiB for the full store, including about 200 GiB for the hot store. Initial sync can take a day or more. Chain data is excluded from Umbrel backups.</li>
         <li>The upstream mainnet milestone is block 966143, the block Bitcoin Core 32.1 assumes valid. Script and signature checks are skipped up to that milestone on the chain it anchors. Later blocks are fully validated. Changing validation policy requires an operator-managed configuration.</li>
         <li>Before version 1.0, an update may require a fresh sync when the storage format changes. Check the app's release notes.</li>
