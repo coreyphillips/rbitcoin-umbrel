@@ -20,7 +20,7 @@ services:
     # umbrel-app.yml, so a packaging fix can ship without a new upstream
     # release (0.8.0-2) and check-release's tag-equals-version rule holds. The
     # digest proves the build exists (see check-release).
-    image: ghcr.io/coreyphillips/rbitcoin-umbrel:0.8.99-3@sha256:70385f7ca541714e105445132a7a153f73441ab46a945299001d632a15ef3911
+    image: ghcr.io/coreyphillips/rbitcoin-umbrel:0.9.99-1@sha256:0aae33fe782cd3d64771b2bc1e2446ae15e408f2a935e4c78dbe76a4a0c9405e
     restart: on-failure
     init: true
     # rbitcoin flushes its store on SIGTERM and its docs say a kill is "not a
@@ -93,7 +93,7 @@ services:
   settings:
     container_name: rbitcoin-node_settings_1
     # The same release image runs only the settings API as uid 1000.
-    image: ghcr.io/coreyphillips/rbitcoin-umbrel:0.8.99-3@sha256:70385f7ca541714e105445132a7a153f73441ab46a945299001d632a15ef3911
+    image: ghcr.io/coreyphillips/rbitcoin-umbrel:0.9.99-1@sha256:0aae33fe782cd3d64771b2bc1e2446ae15e408f2a935e4c78dbe76a4a0c9405e
     restart: on-failure
     init: true
     command: ["settings-server"]
