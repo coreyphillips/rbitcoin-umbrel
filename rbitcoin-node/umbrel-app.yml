@@ -4,7 +4,7 @@ name: rbitcoin
 tagline: A Rust Bitcoin full node that serves Electrum to your wallets
 icon: https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/icon.svg
 category: bitcoin
-version: "0.8.99-3"
+version: "0.9.99-1"
 port: 2114
 description: >-
   rbitcoin is a Bitcoin full node written in Rust that downloads and validates
@@ -14,16 +14,17 @@ description: >-
   network, a server that runs on your own Umbrel.
 
 
-  Read this before installing. rbitcoin is young software: its author calls the
-  mainnet release "early production / high-scrutiny" and "not a Core or Fulcrum
-  replacement", and lists multi-tenant public Electrum service as a non-goal.
-  Use it for your own wallets on this Umbrel and your LAN. It validates
-  signatures from block 840000 onward (the upstream default milestone); earlier
-  blocks are checked by header chain and transaction structure only.
+  Read this before installing. rbitcoin is young software. Upstream calls
+  mainnet the network to run, plans signed releases and a support window for
+  1.0, and lists production multi-tenant Electrum service as a non-goal. Use
+  it for your own wallets on this Umbrel and your LAN. It checks scripts and
+  signatures in every block after 966143, the block Bitcoin Core 32.1 assumes
+  valid (the upstream default milestone); blocks up to it are checked by
+  header chain, transaction structure, spends and fees.
 
 
-  Requirements. An x86_64 Umbrel such as Umbrel Home: rbitcoin publishes no
-  Linux arm64 build, so a Raspberry Pi Umbrel cannot run it. About 750 GiB of
+  Requirements. An x86_64 Umbrel such as Umbrel Home: this app builds the node
+  for x86_64 only, so a Raspberry Pi Umbrel cannot run it. About 750 GiB of
   free disk for the full store, around 200 GiB of it hot. The first sync takes
   a day or more. The node's data is excluded from Umbrel backups: it is hundreds
   of GiB and can always be rebuilt from the network.
@@ -51,15 +52,20 @@ repo: https://github.com/coreyphillips/rbitcoin-umbrel
 support: https://github.com/coreyphillips/rbitcoin-umbrel/issues
 gallery:
   - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/1.png
+  - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/2.png
 releaseNotes: >-
-  rbitcoin 0.8.99 in its own app store. This is the same node and dashboard
-  as the last rbitcoin release in the Beignet store, now published as its own
-  app from the rbitcoin store. If you ran rbitcoin from the Beignet store, you
-  can keep your synced chain instead of syncing again: stop the old app,
-  install this one and stop it, move the old app's data and settings
-  directories across, then start this one. The commands are in the store's
-  README at github.com/coreyphillips/rbitcoin-umbrel. The on-disk format is
-  unchanged, so no fresh sync or data wipe is needed.
+  rbitcoin 0.9.99, the latest upstream master (commit ee509bf) on its way to
+  0.10.0. It carries everything in upstream's 0.9.0 release: reviewed
+  consensus rules, Electrum history for many addresses answered together, a
+  partly written tip repaired at startup, encrypted connections that are
+  harder to identify, and fee estimates that stay useful in a busy mempool.
+
+
+  The default milestone is now block 966143, the block Bitcoin Core 32.1
+  assumes valid (it was block 840000). A sync skips script checks up to that
+  block, and blocks already stored are not checked again. No fresh sync or
+  data wipe is needed: the data directory opens as it is. The dashboard's
+  operating notes are updated to match.
 dependencies: []
 backupIgnore:
   - data
