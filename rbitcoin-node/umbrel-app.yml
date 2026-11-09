@@ -4,7 +4,7 @@ name: rbitcoin
 tagline: A Rust Bitcoin full node that serves Electrum to your wallets
 icon: https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/icon.svg
 category: bitcoin
-version: "0.9.99-1"
+version: "0.9.99-2"
 port: 2114
 description: >-
   rbitcoin is a Bitcoin full node written in Rust that downloads and validates
@@ -23,11 +23,13 @@ description: >-
   header chain, transaction structure, spends and fees.
 
 
-  Requirements. An x86_64 Umbrel such as Umbrel Home: this app builds the node
-  for x86_64 only, so a Raspberry Pi Umbrel cannot run it. About 750 GiB of
-  free disk for the full store, around 200 GiB of it hot. The first sync takes
-  a day or more. The node's data is excluded from Umbrel backups: it is hundreds
-  of GiB and can always be rebuilt from the network.
+  Requirements. An x86_64 Umbrel such as Umbrel Home, or an arm64 one such as
+  a Raspberry Pi. Memory matters more than the processor: upstream sizes
+  following the chain tip at 16 GiB of RAM, so on a Raspberry Pi the first
+  sync is limited by the disk and takes much longer; give it an SSD. About
+  750 GiB of free disk for the full store, around 200 GiB of it hot. The first
+  sync takes a day or more. The node's data is excluded from Umbrel backups: it
+  is hundreds of GiB and can always be rebuilt from the network.
 
 
   Before 1.0 the on-disk format can change. When an update needs a fresh sync
@@ -54,18 +56,15 @@ gallery:
   - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/1.png
   - https://raw.githubusercontent.com/coreyphillips/rbitcoin-umbrel/main/rbitcoin-node/gallery/2.png
 releaseNotes: >-
-  rbitcoin 0.9.99, the latest upstream master (commit ee509bf) on its way to
-  0.10.0. It carries everything in upstream's 0.9.0 release: reviewed
-  consensus rules, Electrum history for many addresses answered together, a
-  partly written tip repaired at startup, encrypted connections that are
-  harder to identify, and fee estimates that stay useful in a busy mempool.
+  rbitcoin 0.9.99 now runs on arm64 Umbrels, such as a Raspberry Pi, as well
+  as x86_64 ones. Until this update the app installed on arm64 but its node
+  did not run; now it starts its first sync. Upstream sizes following the
+  chain tip at 16 GiB of RAM, so on a Raspberry Pi the first sync is limited
+  by the disk and takes much longer.
 
 
-  The default milestone is now block 966143, the block Bitcoin Core 32.1
-  assumes valid (it was block 840000). A sync skips script checks up to that
-  block, and blocks already stored are not checked again. No fresh sync or
-  data wipe is needed: the data directory opens as it is. The dashboard's
-  operating notes are updated to match.
+  On x86_64 the node is the same build as 0.9.99-1, byte for byte. Nothing
+  changes there, and no fresh sync or data wipe is needed on either.
 dependencies: []
 backupIgnore:
   - data
