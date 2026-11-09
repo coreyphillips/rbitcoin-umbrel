@@ -53,7 +53,7 @@ PLAYWRIGHT_MODULE=/tmp/rbitcoin-browser/node_modules/playwright \
   node docker/tests/browser.test.mjs
 ```
 
-Set `SCREENSHOT_DIR` to an existing directory to capture desktop, mobile, and dark-mode screenshots. Browser fixtures are test-only and are never shipped with the dashboard. The test covers ready, syncing, indexing, offline, and missing-metric states; saving and restoring settings; a conflicting save; persisted display choices; copying addresses; and overflow checks from 320 to 1440 pixels.
+Set `SCREENSHOT_DIR` to an existing directory to capture desktop, mobile, and dark-mode screenshots. The README and app store images come from `scripts/screenshots.mjs` instead, which takes the same `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` and replays 15 minutes of sample metrics so the charts fill. Browser fixtures are test-only and are never shipped with the dashboard. The test covers ready, syncing, indexing, offline, and missing-metric states; saving and restoring settings; a conflicting save; persisted display choices; copying addresses; and overflow checks from 320 to 1440 pixels.
 
 For the actual image and backend:
 
