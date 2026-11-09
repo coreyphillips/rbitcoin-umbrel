@@ -152,7 +152,7 @@ function unavailable(message) {
   $('health-badge').dataset.tone = 'bad'; set('health-badge', 'Not answering');
   set('sync-title', 'Waiting for your node.');
   set('sync-detail', 'The node may be starting, restarting, or offline.');
-  set('sync-eta', 'Give it a minute after an install or update. If this continues, check the app logs in Umbrel. This build requires x86_64 hardware.');
+  set('sync-eta', 'Give it a minute after an install or update. If this continues, check the app logs in Umbrel.');
   set('sync-percent', 'n/a'); set('sync-label', 'status unavailable'); $('sync-ring').setAttribute('stroke-dasharray', '0 100');
   set('chain-pace', 'Status unavailable');
   for (const id of ['step-chain', 'step-index', 'step-ready']) $(id).dataset.state = '';
